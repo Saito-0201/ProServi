@@ -1,0 +1,162 @@
+/* ========== PERSONALIZACIÓN DE ADMINLTE ========== */
+:root {
+    --primary: #2563EB;
+    --primary-dark: #1D4ED8;
+    --primary-light: #DBEAFE;
+    --primary-lighter: #EFF6FF;
+    --gray-dark: #1F2937;
+    --gray: #4B5563;
+    --gray-light: #E5E7EB;
+    --gray-lighter: #F9FAFB;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+}
+
+/* Sobrescribir colores de AdminLTE */
+[class*="sidebar-dark-"] {
+    background-color: var(--gray-dark);
+}
+
+.sidebar-dark-primary .nav-sidebar .nav-item .nav-link.active,
+.sidebar-dark-primary .nav-sidebar>.nav-item>.nav-link.active {
+    background-color: var(--primary);
+    color: #fff;
+}
+
+.brand-link {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.brand-link .brand-image {
+    opacity: 0.9;
+}
+
+.navbar-white {
+    background-color: #fff;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: var(--gray-dark);
+    font-weight: 600;
+}
+
+.navbar-light .navbar-nav .nav-link:hover {
+    color: var(--primary);
+}
+
+.main-footer {
+    background-color: #fff;
+    border-top: 1px solid var(--gray-light);
+    color: var(--gray);
+    padding: 1rem 0;
+}
+
+.content-wrapper {
+    background-color: #f8f9fa;
+}
+
+.content {
+    padding: 20px;
+}
+
+/* Botones personalizados */
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Cards personalizadas */
+.card {
+    border: 1px solid var(--gray-light);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+.card-header {
+    background-color: var(--gray-lighter);
+    border-bottom: 1px solid var(--gray-light);
+    font-weight: 600;
+}
+
+/* Badges personalizados */
+.badge-primary {
+    background-color: var(--primary);
+}
+
+/* Formularios */
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+}
+
+.custom-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+}
+
+/* Tablas */
+.table thead th {
+    background-color: var(--gray-lighter);
+    border-bottom: 2px solid var(--gray-light);
+    font-weight: 600;
+}
+
+/* Layout top-nav específico */
+.layout-top-nav .wrapper .main-header {
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.layout-top-nav .content-wrapper {
+    margin-left: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+    .navbar-collapse {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .navbar-nav .dropdown-menu {
+        position: static;
+        float: none;
+    }
+}
+
+/* Mantener consistencia con tu landing page */
+body {
+    font-family: 'Open Sans', sans-serif;
+    color: var(--gray-dark);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+}

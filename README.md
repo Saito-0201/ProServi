@@ -36,7 +36,7 @@ El desarrollo sigue la **metodología ágil Scrum**, estructurada en sprints que
 ## ⚙️ Instalación
 1. Clonar el repositorio  
    ```bash
-   git clone https://github.com/Saito-0201/proservi.git
+   git clone https://github.com/Saito-0201/ProServi.git
    ```
 2. Instalar dependencias  
    ```bash
@@ -77,5 +77,5 @@ El proyecto sigue el patrón **MVC (Modelo-Vista-Controlador)** con módulos ind
 ## 📚 Autor
 Desarrollado por **Gonzalo Felipez**  
 Proyecto académico – Aplicación de Metodología Ágil Scrum  
-📧 Contacto: gonzalofelipez@example.com  
+📧 Contacto: gonzalofelipez0398@gmail.com  
 📅 Año: 2025

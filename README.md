@@ -20,7 +20,7 @@ Incluye autenticación con **Google OAuth**, verificación de identidad (KYC), g
 El desarrollo sigue la **metodología ágil Scrum**, estructurada en sprints que abarcan:
 - HU-01: Iniciar sesión  
 - HU-02: Gestión de roles y permisos  
-- HU-03 a HU-12: Publicación, búsqueda y calificación de servicios  
+- HU-03 a HU-5: Publicación, búsqueda y calificación de servicios  
 
 ---
 
@@ -36,7 +36,7 @@ El desarrollo sigue la **metodología ágil Scrum**, estructurada en sprints que
 ## ⚙️ Instalación
 1. Clonar el repositorio  
    ```bash
-   git clone https://github.com/tuusuario/proservi.git
+   git clone https://github.com/Saito-0201/proservi.git
    ```
 2. Instalar dependencias  
    ```bash

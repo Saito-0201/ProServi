@@ -115,9 +115,7 @@
     </style>
 @stop
 
-@section('footer')
-    <strong>Copyright &copy; {{ date('Y') }} <a href="#">PROSERVI</a>.</strong> Todos los derechos reservados.
-@stop
+
 
 @section('js')
     <script>

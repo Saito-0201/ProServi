@@ -28,7 +28,7 @@
 
         <div class="col-lg-6 order-lg-2 order-1" data-aos="fade-left">
           <div class="hero-illustration ratio ratio-4x3 rounded-4 shadow-sm"
-               style="background: url('{{ asset('uploads/images/hero.png') }}') center/cover no-repeat;"></div>
+               style="background: url('{{ asset('uploads/images/hero3.png') }}') center/cover no-repeat;"></div>
         </div>
       </div>
     </div>

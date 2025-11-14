@@ -101,37 +101,37 @@
       </div>
 
       {{-- Campos de ubicación que se llenarán automáticamente --}}
-      <div class="col-md-6">
+      <div class="col-md-6" hidden>
         <label class="form-label">Dirección</label>
         <input type="text" name="direccion" id="direccion" class="form-control" value="{{ old('direccion',$servicio->direccion) }}" required>
         @error('direccion')<small class="text-danger">{{ $message }}</small>@enderror
       </div>
       
-      <div class="col-md-4">
+      <div class="col-md-4" hidden>
         <label class="form-label">Ciudad</label>
         <input type="text" name="ciudad" id="ciudad" class="form-control" value="{{ old('ciudad',$servicio->ciudad) }}" required>
         @error('ciudad')<small class="text-danger">{{ $message }}</small>@enderror
       </div>
       
-      <div class="col-md-4">
+      <div class="col-md-4" hidden>
         <label class="form-label">Provincia</label>
         <input type="text" name="provincia" id="provincia" class="form-control" value="{{ old('provincia',$servicio->provincia) }}" required>
         @error('provincia')<small class="text-danger">{{ $message }}</small>@enderror
       </div>
       
-      <div class="col-md-4">
+      <div class="col-md-4" hidden>
         <label class="form-label">País</label>
         <input type="text" name="pais" id="pais" class="form-control" value="{{ old('pais',$servicio->pais) }}">
         @error('pais')<small class="text-danger">{{ $message }}</small>@enderror
       </div>
 
-      <div class="col-md-6">
+      <div class="col-md-6" hidden>
         <label class="form-label"><i class="bi bi-compass me-1"></i> Latitud</label>
         <input type="text" name="latitud" id="latitud" class="form-control" value="{{ old('latitud',$servicio->latitud) }}" required>
         @error('latitud')<small class="text-danger">{{ $message }}</small>@enderror
       </div>
       
-      <div class="col-md-6">
+      <div class="col-md-6" hidden>
         <label class="form-label"><i class="bi bi-compass me-1"></i> Longitud</label>
         <input type="text" name="longitud" id="longitud" class="form-control" value="{{ old('longitud',$servicio->longitud) }}" required>
         @error('longitud')<small class="text-danger">{{ $message }}</small>@enderror
@@ -163,6 +163,7 @@
 @endpush
 
 @push('scripts')
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   {{-- Subcategorías por categoría --}}
   <script>
     const categoriaSel = document.getElementById('categoria_id');
@@ -216,7 +217,17 @@
 
             if (['fijo', 'diario', 'por_servicio'].includes(tipoPrecio) && (!precio || precio <= 0)) {
                 e.preventDefault();
-                alert('Por favor ingrese un precio válido para el tipo de precio seleccionado.');
+                // Reemplazar este alert:
+                // alert('Por favor ingrese un precio válido para el tipo de precio seleccionado.');
+                
+                // Por esto:
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Precio requerido',
+                    text: 'Por favor ingrese un precio válido para el tipo de precio seleccionado.',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'Aceptar'
+                });
                 precioInput.focus();
             }
         });

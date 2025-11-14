@@ -171,7 +171,7 @@
 
   {{-- Estilos CSS para el dashboard --}}
   <style>
-    /* Estilos para el avatar redondo - CORREGIDO */
+    /* Estilos para el avatar redondo  */
     .profile-avatar-container {
       width: 64px;
       height: 64px;

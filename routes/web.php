@@ -1,21 +1,15 @@
 <?php
 
-
 use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\Auth\VerificationController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Route;
 
 // Página principal
 Route::get('/', [\App\Http\Controllers\LandingController::class, 'index']);
 
-
 Route::view('/terminos', 'terms')->name('terms');
 Route::view('/privacidad', 'privacy')->name('privacy');
-
-
 
 // Rutas de autenticación (con verificación de email activada)
 Auth::routes(['verify' => true]);
@@ -31,10 +25,89 @@ Route::get('/home', function () {
     } elseif ($user->hasRole('Cliente')) {
         return redirect()->route('cliente.index');
     } else {
-        // Si no tiene rol, redirigir al landing con mensaje
         return redirect('/')->with('error', 'No tienes un rol asignado. Contacta al administrador.');
     }
 })->name('home')->middleware(['auth','verified']);
+
+// ==================== VERIFICACIÓN DE EMAIL ====================
+// Página de aviso de verificación
+Route::get('/email/verify', function () {
+    return view('auth.verify');
+})->middleware('auth')->name('verification.notice');
+
+// Procesar la verificación - VERSIÓN MEJORADA Y FUNCIONAL
+Route::get('/email/verify/{id}/{hash}', function ($id, $hash) {
+    // DEBUG: Log inicial
+    \Log::info('Iniciando verificación para usuario ID: ' . $id);
+
+    $user = \App\Models\User::find($id);
+    
+    if (!$user) {
+        \Log::error('Usuario no encontrado ID: ' . $id);
+        return redirect('/login')->with('error', 'Usuario no encontrado.');
+    }
+    
+    // Verificar si el usuario ya está verificado
+    if ($user->hasVerifiedEmail()) {
+        \Log::info('Usuario ya verificado ID: ' . $id);
+        return redirect('/home')->with('info', 'El email ya estaba verificado.');
+    }
+
+    // Verificación del hash - MÉTODO SIMPLIFICADO
+    $expectedHash = sha1($user->getEmailForVerification());
+    $hashMatches = hash_equals($expectedHash, $hash);
+    
+    \Log::info('Verificación hash', [
+        'user_id' => $id,
+        'email' => $user->email,
+        'hash_matches' => $hashMatches
+    ]);
+
+    if (!$hashMatches) {
+        \Log::error('Hash no coincide', [
+            'expected' => $expectedHash,
+            'provided' => $hash
+        ]);
+        return redirect('/email/verify')->with('error', 'Enlace de verificación inválido o expirado.');
+    }
+
+    // MARCAR COMO VERIFICADO - ESTO ES LO MÁS IMPORTANTE
+    try {
+        $user->email_verified_at = now();
+        $user->save();
+        
+        \Log::info('Usuario marcado como verificado ID: ' . $user->id);
+        
+        // Disparar evento de verificación
+        event(new \Illuminate\Auth\Events\Verified($user));
+        
+        \Log::info('Evento de verificación disparado para ID: ' . $user->id);
+
+    } catch (\Exception $e) {
+        \Log::error('Error al verificar usuario: ' . $e->getMessage());
+        return redirect('/email/verify')->with('error', 'Error al completar la verificación.');
+    }
+
+    // Iniciar sesión si no está autenticado
+    if (!auth()->check()) {
+        auth()->login($user);
+    }
+
+    // Redirigir a home con mensaje de éxito
+    return redirect('/home')->with('success', '¡Email verificado correctamente! Bienvenido a ProServi.');
+
+})->name('verification.verify');
+
+// Reenviar verificación (mantén esta igual)
+Route::post('/email/verification-notification', function (Illuminate\Http\Request $request) {
+    if ($request->user()->hasVerifiedEmail()) {
+        return redirect('/home');
+    }
+
+    $request->user()->sendEmailVerificationNotification();
+
+    return back()->with('status', 'Se ha enviado un nuevo enlace de verificación a tu email.');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 // ==================== RUTAS PÚBLICAS ====================
 Route::name('public.')->group(function () {
@@ -48,7 +121,6 @@ Route::name('public.')->group(function () {
     Route::get('/public/servicios/subcategorias/{categoria}', [\App\Http\Controllers\Publico\ServicioController::class, 'getSubcategorias'])
     ->name('public.servicios.subcategorias');
 });
-
 
 // ==================== CLIENTE ====================
 Route::prefix('cliente')->name('cliente.')->middleware(['auth', 'verified', 'role:Cliente'])->group(function () {  
@@ -69,6 +141,7 @@ Route::prefix('cliente')->name('cliente.')->middleware(['auth', 'verified', 'rol
     Route::prefix('servicios')->group(function () {
         Route::get('/', [\App\Http\Controllers\Cliente\ServicioController::class, 'index'])->name('servicios.index');
         Route::get('/buscar', [\App\Http\Controllers\Cliente\ServicioController::class, 'buscar'])->name('servicios.buscar');
+        Route::post('/detect-location', [\App\Http\Controllers\Cliente\ServicioController::class, 'detectLocation'])->name('servicios.detect-location');
         Route::get('/ubicacion', [\App\Http\Controllers\Cliente\ServicioController::class, 'porUbicacion'])->name('servicios.ubicacion');
         Route::get('/categoria/{categoria}', [\App\Http\Controllers\Cliente\ServicioController::class, 'porCategoria'])->name('servicios.categoria');
         Route::get('/{servicio}', [\App\Http\Controllers\Cliente\ServicioController::class, 'show'])->name('servicios.show');
@@ -203,10 +276,23 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:Administrador'
     Route::patch('/verificaciones/{id}/aprobar', [App\Http\Controllers\VerificacionController::class, 'aprobar'])->name('verificaciones.aprobar');
     Route::patch('/verificaciones/{id}/rechazar', [App\Http\Controllers\VerificacionController::class, 'rechazar'])->name('verificaciones.rechazar');
     Route::get('/verificaciones-pendientes', [App\Http\Controllers\VerificacionController::class, 'pendientes'])->name('verificaciones.pendientes');
-    
+
     // Ruta para obtener subcategorías (sin middleware auth para AJAX)
     Route::get('/servicios/{categoria_id}/subcategorias', [App\Http\Controllers\ServicioController::class, 'getSubcategorias'])
         ->name('servicios.subcategorias');
+
+    // ==================== REPORTES ====================
+    Route::prefix('reportes')->name('reportes.')->group(function () {
+        // Reporte de Servicios
+        Route::get('servicios', [App\Http\Controllers\Admin\ReporteServicioController::class, 'index'])->name('servicios');
+        Route::post('servicios/exportar', [App\Http\Controllers\Admin\ReporteServicioController::class, 'exportar'])->name('servicios.exportar');
+        Route::post('servicios/exportar-pdf', [App\Http\Controllers\Admin\ReporteServicioController::class, 'exportarPdf'])->name('servicios.exportar-pdf');
+
+        // Reporte de Usuarios
+        Route::get('usuarios', [App\Http\Controllers\Admin\ReporteUsuarioController::class, 'index'])->name('usuarios');
+        Route::post('usuarios/exportar', [App\Http\Controllers\Admin\ReporteUsuarioController::class, 'exportar'])->name('usuarios.exportar');
+        Route::post('usuarios/exportar-pdf', [App\Http\Controllers\Admin\ReporteUsuarioController::class, 'exportarPdf'])->name('usuarios.exportar-pdf');
+    });
 });
 
 // ==================== AUTENTICACIÓN CON GOOGLE ====================
@@ -216,34 +302,3 @@ Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallb
 // Completar registro con Google
 Route::get('/complete-registration', [GoogleController::class, 'showCompleteForm'])->name('complete.registration')->middleware('guest');
 Route::post('/complete-registration', [GoogleController::class, 'completeRegistration'])->name('complete.registration.submit')->middleware('guest');
-
-// ==================== VERIFICACIÓN DE EMAIL ====================
-// Aviso de verificación
-Route::get('/email/verify', [VerificationController::class, 'show'])
-    ->middleware('auth')
-    ->name('verification.notice');
-
-// Procesar el enlace de verificación
-Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
-    ->middleware(['auth', 'signed'])
-    ->name('verification.verify');
-
-// Reenviar verificación
-Route::post('/email/verification-notification', [VerificationController::class, 'resend'])
-    ->middleware(['auth', 'throttle:6,1'])
-    ->name('verification.send');
-
-// Ruta para verificar el estado después de la verificación
-Route::get('/email/verify-check', function () {
-    if (auth()->user()->hasVerifiedEmail()) {
-        return redirect('/home');
-    }
-    return back()->with('error', 'Tu correo electrónico aún no ha sido verificado.');
-})->middleware('auth')->name('verification.check.status');
-
-Route::get('/email/verify/check', function () {
-    if (auth()->user()->hasVerifiedEmail()) {
-        return redirect()->intended(config('adminlte.home'));
-    }
-    return back()->with('not_verified', true);
-})->middleware(['auth'])->name('verification.check');

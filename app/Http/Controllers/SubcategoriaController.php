@@ -98,6 +98,14 @@ class SubcategoriaController extends Controller
     public function destroy($id)
     {
         $subcategoria = Subcategoria::findOrFail($id);
+        
+        // Verificar si la subcategoría tiene servicios asociados
+        if ($subcategoria->servicios && $subcategoria->servicios->count() > 0) {
+            return redirect()->route('admin.subcategorias.index')
+                ->with('mensaje', 'No se puede eliminar la subcategoría porque tiene servicios asociados')
+                ->with('icono', 'error');
+        }
+
         $subcategoria->delete();
 
         return redirect()->route('admin.subcategorias.index')

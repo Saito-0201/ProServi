@@ -16,11 +16,9 @@ class RegisterController extends Controller
     use RegistersUsers;
 
     /**
-     * Redirección después del registro
-     *
-     * @var string
+     * Redirección después del registro - A VERIFICACIÓN
      */
-    protected $redirectTo = '/email/verify'; // Cambiado a verificación de email
+    protected $redirectTo = '/email/verify';
 
     /**
      * Constructor

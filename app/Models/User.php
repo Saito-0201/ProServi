@@ -159,4 +159,26 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->created_at->locale('es')->translatedFormat('F Y');
     }
+
+    /**
+     * Marcar el email como verificado
+     */
+    public function markEmailAsVerified()
+    {
+        $this->forceFill([
+            'email_verified_at' => $this->freshTimestamp(),
+        ])->save();
+
+        event(new \Illuminate\Auth\Events\Verified($this));
+        
+        return true;
+    }
+
+    /**
+     * Obtener el email para verificación
+     */
+    public function getEmailForVerification()
+    {
+        return $this->email;
+    }
 }

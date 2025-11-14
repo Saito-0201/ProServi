@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('ruta_foto_cara')->nullable();
             $table->enum('estado', ['pendiente', 'aprobado', 'rechazado'])->default('pendiente');
             $table->dateTime('fecha_verificacion')->nullable();
+            $table->text('motivo_rechazo')->nullable();
             $table->timestamps();
         });
     }

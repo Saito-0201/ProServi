@@ -21,7 +21,7 @@ class PrestadorController extends Controller
         $serviciosActivos = $servicios->where('estado', 'activo')->count();
         $visitasTotales  = $servicios->sum('visitas');
 
-        // ✅ CORREGIDO: Calcular rating promedio basado en las calificaciones reales
+        // Calcular rating promedio basado en las calificaciones reales
         $ratingPromedio = Calificacion::whereHas('servicio', function($query) use ($user) {
                 $query->where('prestador_id', $user->id);
             })

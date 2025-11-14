@@ -309,16 +309,7 @@ return [
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Menu-Configuration
     |
     */
-
-    'menu' => [
-        
-        [
-            'type' => 'fullscreen-widget',
-            'topnav_right' => true,
-        ],
-
-        [   'header'=>'DATOS DEL SISTEMA'],
-        //Configuracion de datos del sistema
+    //Configuracion de datos del sistema
         //[
         //    'text' => 'Configuración',
         //    'url' => 'admin/configuraciones',
@@ -326,6 +317,17 @@ return [
         //    'classes' => 'bg-blue text-white'
         //],
         //panel de gestion de categorias
+
+        'menu' => [
+        
+        [
+            'type' => 'fullscreen-widget',
+            'topnav_right' => true,
+        ],
+
+        [   'header'=>'DATOS DEL SISTEMA'],
+        
+        //Panel de gestión de categorias
         [
             'text' => 'Categorias',
             'icon' => 'fas fa-fw fa-tags',
@@ -343,18 +345,29 @@ return [
                 ]
             ],
         ],
-        //Panel de gestion de Verificaciones
-        [
-            'text' => 'Verificaciones',
-            'url' => 'admin/verificaciones',
-            'icon' => 'fas fa-fw fa-check-double',  
-            'classes' => 'bg-blue text-white'
-        ],
         
+        //Panel de gestión de Usuarios y Verificaciones (agrupados)
+        [
+            'text' => 'Usuarios',
+            'icon' => 'fas fa-fw fa-users', 
+            'classes' => 'bg-blue text-white',
+            'submenu' => [
+                [
+                    'text' => 'Gestión de Usuarios',
+                    'url' => 'admin/usuarios',
+                    'classes'=> 'bg-white text-black',
+                ],
+                [
+                    'text' => 'Solicitudes de Verificación',
+                    'url' => 'admin/verificaciones',
+                    'classes'=> 'bg-white text-black',
+                ]
+            ],
+        ],
         
         [   'header'=>'DATOS'],
 
-        //Panel de gestion de roles
+        //Panel de gestión de roles
         [
             'text' => 'Roles',
             'icon' => 'fas fa-fw fa-user-shield',  
@@ -368,15 +381,7 @@ return [
             ],
         ],
         
-        //Panel de gestion de usuarios
-        [
-            'text' => 'Usuarios',
-            'url' => 'admin/usuarios',
-            'icon' => 'fas fa-fw fa-user-friends', 
-            'classes' => 'bg-blue text-white'
-        ],
-
-        //Panel de gestion de servicios
+        //Panel de gestión de servicios
         [
             'text' => 'Servicios',
             'url' => 'admin/servicios',
@@ -384,22 +389,24 @@ return [
             'classes' => 'bg-blue text-white'
         ],
 
-        
-
-        //Panel de gestion de Calificaciones
+        //Panel de gestión de Reportes
         [
-            'text' => 'Calificaciones',
-            'url' => 'admin/calificaciones',
-            'icon' => 'fas fa-fw fa-star',  
-            'classes' => 'bg-blue text-white'
+            'text' => 'Reportes',
+            'icon' => 'fas fa-fw fa-chart-line',  
+            'classes' => 'bg-blue text-white',
+            'submenu' => [
+                [
+                    'text' => 'Reporte de Servicios',
+                    'url'=> 'admin/reportes/servicios',
+                    'classes'=> 'bg-white text-black',
+                ],
+                [
+                    'text' => 'Reporte de Usuarios',
+                    'url'=> 'admin/reportes/usuarios',
+                    'classes'=> 'bg-white text-black',
+                ],
+            ],
         ],
-
-
-        //[
-        //    'text' => 'profile',
-        //    'url' => 'admin/settings',
-        //    'icon' => 'fas fa-fw fa-user',
-        //],
     ],
 
     /*

@@ -109,7 +109,7 @@ class PerfilController extends Controller
     public function updateFoto(Request $request)
     {
         $request->validate([
-            'foto_perfil' => 'required|image|mimes:jpeg,png,jpg,gif|max:12288',
+            'foto_perfil' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
         ]);
 
         $user = Auth::user();
@@ -130,7 +130,7 @@ class PerfilController extends Controller
         $clienteInfo->foto_perfil = $path;
         $clienteInfo->save();
 
-        return redirect()->back()->with('success', 'Foto de perfil actualizada correctamente.');
+        return response()->json(['success' => true, 'message' => 'Foto de perfil actualizada correctamente.']);
     }
 
     /**
@@ -149,6 +149,6 @@ class PerfilController extends Controller
             $clienteInfo->save();
         }
 
-        return redirect()->back()->with('success', 'Foto de perfil eliminada correctamente.');
+        return response()->json(['success' => true, 'message' => 'Foto de perfil eliminada correctamente.']);
     }
 }

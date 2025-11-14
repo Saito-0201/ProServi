@@ -20,7 +20,8 @@ class Verificacion extends Model
         'ruta_reverso_carnet', 
         'ruta_foto_cara',
         'estado',
-        'fecha_verificacion'
+        'fecha_verificacion',
+        'motivo_rechazo',
     ];
 
     protected $casts = [

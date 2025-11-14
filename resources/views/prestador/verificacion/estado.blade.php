@@ -6,6 +6,23 @@
 @section('prestador-content')
 <div class="row justify-content-center">
     <div class="col-lg-8">
+        <!-- Mostrar mensajes de éxito/error -->
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <div class="card shadow-sm border-0">
             <div class="card-body text-center py-5">
                 @if(!$verificacion)
@@ -34,7 +51,6 @@
                             <form id="cancelar-verificacion-form" action="{{ route('prestador.verificacion.destroy') }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                {{-- Abrir modal en lugar de confirm() --}}
                                 <button type="button" class="btn btn-outline-danger btn-sm"
                                         data-bs-toggle="modal" data-bs-target="#confirmCancelModal">
                                     <i class="fas fa-times me-1"></i>Cancelar solicitud
@@ -62,12 +78,22 @@
                             </div>
                             <h4 class="text-danger">Verificación rechazada</h4>
                             <p class="text-muted mb-3">Tu solicitud de verificación fue rechazada.</p>
+                            
+                            <!-- Mostrar motivo de rechazo -->
+                            @if($verificacion->motivo_rechazo)
                             <div class="alert alert-danger">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Motivo del rechazo:</h6>
+                                <p class="mb-0">{{ $verificacion->motivo_rechazo }}</p>
+                            </div>
+                            @else
+                            <div class="alert alert-warning">
                                 <small>
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     Por favor, verifica que la información y las fotos sean claras y válidas.
                                 </small>
                             </div>
+                            @endif
+                            
                             <a href="{{ route('prestador.verificacion.create') }}" class="btn btn-primary">
                                 <i class="fas fa-redo me-2"></i>Volver a intentar
                             </a>
@@ -83,12 +109,26 @@
                 <h6 class="mb-0"><i class="fas fa-history me-2"></i>Detalles de la solicitud</h6>
             </div>
             <div class="card-body">
-                <div class="row mt-3">
-                    <div class="col-12">
+                <div class="row">
+                    <div class="col-md-6">
                         <strong>Fecha de solicitud:</strong><br>
                         {{ $verificacion->created_at->format('d/m/Y H:i') }}
                     </div>
+                    <div class="col-md-6">
+                        <strong>Estado actual:</strong><br>
+                        <span class="badge bg-{{ $verificacion->estado == 'aprobado' ? 'success' : ($verificacion->estado == 'rechazado' ? 'danger' : 'warning') }}">
+                            {{ ucfirst($verificacion->estado) }}
+                        </span>
+                    </div>
                 </div>
+                @if($verificacion->fecha_verificacion)
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <strong>Fecha de verificación:</strong><br>
+                        {{ $verificacion->fecha_verificacion->format('d/m/Y H:i') }}
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
         @endif
@@ -135,4 +175,11 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+
+<style>
+.badge {
+    font-size: 0.85em;
+    padding: 0.4em 0.8em;
+}
+</style>
 @endsection

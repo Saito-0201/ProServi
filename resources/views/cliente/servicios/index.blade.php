@@ -282,13 +282,16 @@
                 <h5 class="mb-0 fw-bold" id="results-count">
                     Cargando servicios...
                 </h5>
+                <p class="text-muted small mb-0" id="results-subtitle">
+                    Explorando servicios aleatorios
+                </p>
             </div>
             <div class="d-none d-md-block">
                 <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-outline-primary active" id="btn-grid-view">
+                    <button type="button" class="btn btn-outline-primary active" id="btn-grid-view" hidden>
                         <i class="bi bi-grid-3x3"></i>
                     </button>
-                    <button type="button" class="btn btn-outline-primary" id="btn-list-view">
+                    <button type="button" class="btn btn-outline-primary" id="btn-list-view" hidden>
                         <i class="bi bi-list"></i>
                     </button>
                 </div>
@@ -301,11 +304,11 @@
         </div>
 
         {{-- Estados de la aplicación --}}
-        <div id="loading-indicator" class="text-center py-5" style="display: none;">
+        <div id="loading-indicator" class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
-            <p class="text-muted mt-2">Cargando más servicios...</p>
+            <p class="text-muted mt-2" id="loading-text">Cargando servicios aleatorios...</p>
         </div>
 
         <div id="no-more-results" class="text-center py-4" style="display: none;">
@@ -654,18 +657,131 @@
         transform: translateY(0);
     }
 }
+
+/* 🔥 NUEVO: Estilos para la experiencia mejorada */
+.smart-loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.location-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.relevance-badge {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+/* Mejoras de rendimiento para scroll */
+.services-container {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 5000px;
+}
+
+.service-card {
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* Animaciones suaves */
+.fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Indicador de ubicación activa */
+.location-active {
+    border-left: 4px solid #10b981;
+}
+
+/* Estados de carga mejorados */
+.loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+}
+
+/* Responsive mejoras */
+@media (max-width: 768px) {
+    .service-card {
+        margin-bottom: 1rem;
+    }
+    
+    .relevance-badge {
+        font-size: 0.65rem;
+        padding: 1px 6px;
+    }
+}
+
+/* Estados hover mejorados */
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+}
+
+/* Scrollbar personalizado */
+.services-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.services-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.services-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.services-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
 </style>
 
 <script>
-// Clase principal para gestionar el scroll infinito Y FAVORITOS
-class InfiniteScrollManager {
+// Clase principal para gestionar el scroll infinito con carga inteligente
+class IntelligentScrollManager {
     constructor() {
         this.currentPage = 1;
         this.isLoading = false;
         this.hasMore = true;
         this.currentView = 'grid';
         this.currentFilters = {};
-        this.favoriteLock = false; // 🔒 BLOQUEO PARA EVITAR CONFLICTOS
+        this.favoriteLock = false;
+        this.userLocation = null;
         this.init();
     }
 
@@ -675,8 +791,9 @@ class InfiniteScrollManager {
             return;
         }
         this.setupEventListeners();
-        this.loadInitialServices();
         this.initializeCategorySelects();
+        this.detectUserLocation(); // 🔥 NUEVO: Detectar ubicación al iniciar
+        this.loadInitialServices();
     }
 
     delayedInit() {
@@ -686,13 +803,83 @@ class InfiniteScrollManager {
             return;
         }
         this.setupEventListeners();
-        this.loadInitialServices();
         this.initializeCategorySelects();
+        this.detectUserLocation();
+        this.loadInitialServices();
+    }
+
+    /**
+     * 🔥 NUEVO: Detectar ubicación del usuario para personalización
+     */
+    async detectUserLocation() {
+        if (!navigator.geolocation) {
+            console.log('Geolocalización no soportada');
+            this.useDefaultLocation();
+            return;
+        }
+
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 300000 // 5 minutos
+                });
+            });
+
+            this.userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+
+            console.log('Ubicación detectada:', this.userLocation);
+            
+            // Enviar ubicación al servidor para personalización
+            await this.sendLocationToServer();
+            
+        } catch (error) {
+            console.log('No se pudo obtener la ubicación:', error.message);
+            this.useDefaultLocation();
+        }
+    }
+
+    /**
+     * Usar ubicación por defecto
+     */
+    useDefaultLocation() {
+        this.userLocation = {
+            lat: -17.393,
+            lng: -66.157,
+            ciudad: 'Cochabamba'
+        };
+    }
+
+    /**
+     * 🔥 NUEVO: Enviar ubicación al servidor
+     */
+    async sendLocationToServer() {
+        try {
+            const response = await fetch('{{ route("cliente.servicios.detect-location") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(this.userLocation)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                console.log('Ubicación guardada en servidor:', data.location);
+            }
+        } catch (error) {
+            console.error('Error enviando ubicación:', error);
+        }
     }
 
     setupEventListeners() {
-        // Scroll infinito
-        window.addEventListener('scroll', this.handleScroll.bind(this));
+        // Scroll infinito mejorado
+        window.addEventListener('scroll', this.throttle(this.handleScroll.bind(this), 200));
         
         // Botones de vista
         const btnGridView = document.getElementById('btn-grid-view');
@@ -710,6 +897,14 @@ class InfiniteScrollManager {
         if (filterForm) filterForm.addEventListener('submit', (e) => this.handleFilterSubmit(e));
         if (filterFormMobile) filterFormMobile.addEventListener('submit', (e) => this.handleFilterSubmit(e));
         
+        // Mejorar experiencia de búsqueda en tiempo real
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', this.debounce((e) => {
+                this.handleRealTimeSearch(e.target.value);
+            }, 500));
+        }
+
         // Botones limpiar
         const clearFilters = document.getElementById('clear-filters');
         const clearFiltersMobile = document.getElementById('clear-filters-mobile');
@@ -731,79 +926,57 @@ class InfiniteScrollManager {
         if (filtersOverlay) filtersOverlay.addEventListener('click', () => this.closeFilters());
     }
 
-    initializeCategorySelects() {
-        // Configurar selects de categoría para ambos formularios
-        this.setupCategorySelect('categoria-select', 'subcategoria-container', 'subcategoria-select');
-        this.setupCategorySelect('categoria-select-mobile', 'subcategoria-container-mobile', 'subcategoria-select-mobile');
+    /**
+     * 🔥 NUEVO: Búsqueda en tiempo real
+     */
+    async handleRealTimeSearch(query) {
+        if (query.length < 2 && query.length !== 0) return;
+        
+        this.currentFilters.q = query;
+        this.currentPage = 1;
+        this.hasMore = true;
+        
+        this.hideNoMoreResults();
+        this.hideEmptyState();
+        await this.loadServices();
     }
 
-    setupCategorySelect(selectId, containerId, subcatSelectId) {
-        const select = document.getElementById(selectId);
-        if (select) {
-            select.addEventListener('change', function() {
-                const categoriaId = this.value;
-                const container = document.getElementById(containerId);
-                const subcatSelect = document.getElementById(subcatSelectId);
-                
-                if (categoriaId) {
-                    fetch(`/cliente/servicios/subcategorias/${categoriaId}`)
-                        .then(response => {
-                            if (!response.ok) throw new Error('Error al cargar subcategorías');
-                            return response.json();
-                        })
-                        .then(data => {
-                            subcatSelect.innerHTML = '<option value="">Todas las subcategorías</option>';
-                            data.forEach(subcategoria => {
-                                subcatSelect.innerHTML += `<option value="${subcategoria.id}">${subcategoria.nombre}</option>`;
-                            });
-                            container.style.display = 'block';
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            container.style.display = 'none';
-                        });
-                } else {
-                    container.style.display = 'none';
-                }
-            });
+    /**
+     * 🔥 NUEVO: Throttle para optimizar scroll
+     */
+    throttle(func, limit) {
+        let inThrottle;
+        return function(...args) {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
         }
+    }
+
+    /**
+     * 🔥 NUEVO: Debounce para búsqueda en tiempo real
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
 
     async loadInitialServices() {
         this.currentPage = 1;
         this.updateFiltersFromURL();
+        
+        // Mostrar loading optimizado
+        this.showSmartLoading();
         await this.loadServices();
-    }
-
-    updateFiltersFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        this.currentFilters = {};
-        
-        for (const [key, value] of urlParams) {
-            if (value) this.currentFilters[key] = value;
-        }
-        
-        this.fillFormFromFilters();
-    }
-
-    fillFormFromFilters() {
-        // Llenar todos los formularios con los filtros actuales
-        const forms = ['search-form', 'filter-form', 'filter-form-mobile'];
-        forms.forEach(formId => {
-            const form = document.getElementById(formId);
-            if (form) {
-                Object.keys(this.currentFilters).forEach(key => {
-                    const element = form.querySelector(`[name="${key}"]`);
-                    if (element) {
-                        if (element.type === 'checkbox') {
-                            element.checked = this.currentFilters[key] === '1';
-                        } else {
-                            element.value = this.currentFilters[key];
-                        }
-                    }
-                });
-            }
-        });
     }
 
     async loadServices() {
@@ -820,6 +993,12 @@ class InfiniteScrollManager {
                 view: this.currentView,
                 ajax: true
             });
+
+            // 🔥 NUEVO: Agregar ubicación a los parámetros si está disponible
+            if (this.userLocation) {
+                params.append('lat', this.userLocation.lat);
+                params.append('lng', this.userLocation.lng);
+            }
             
             const response = await fetch(`{{ route('cliente.servicios.index') }}?${params}`);
             
@@ -829,18 +1008,24 @@ class InfiniteScrollManager {
             
             if (!data.success) throw new Error(data.error || 'Error al cargar servicios');
             
-            // 🔥 VERIFICACIÓN EXTRA: Solo agregar si hay contenido
+            // Actualizar interfaz según el tipo de contenido
+            this.updateInterfaceForContent(data);
+            
             if (data.html && data.html.trim() !== '') {
                 if (this.currentPage === 1) {
                     document.getElementById('services-container').innerHTML = data.html;
+                    // 🔥 NUEVO: Animación suave para nueva carga
+                    this.animateNewContent();
                 } else {
                     document.getElementById('services-container').insertAdjacentHTML('beforeend', data.html);
                 }
+            } else if (this.currentPage === 1) {
+                // No hay resultados
+                this.showEmptyState();
             }
             
             this.initializeFavoriteButtons();
             
-            // 🔥 ACTUALIZACIÓN MÁS SEGURA
             this.hasMore = data.hasMore && data.currentPage < data.lastPage;
             
             if (this.hasMore) {
@@ -849,7 +1034,7 @@ class InfiniteScrollManager {
                 this.showNoMoreResults();
             }
             
-            this.updateResultsCount(data.total);
+            this.updateResultsCount(data.total, data.hasFilters);
             
         } catch (error) {
             console.error('Error loading services:', error);
@@ -860,6 +1045,78 @@ class InfiniteScrollManager {
         }
     }
 
+    /**
+     * 🔥 NUEVO: Actualizar interfaz según el tipo de contenido
+     */
+    updateInterfaceForContent(data) {
+        const loadingText = document.getElementById('loading-text');
+        const resultsSubtitle = document.getElementById('results-subtitle');
+        
+        if (loadingText) {
+            if (data.hasFilters) {
+                loadingText.textContent = 'Buscando servicios...';
+            } else if (this.userLocation) {
+                loadingText.textContent = 'Encontrando servicios cerca de ti...';
+            } else {
+                loadingText.textContent = 'Descubriendo servicios recomendados...';
+            }
+        }
+
+        if (resultsSubtitle) {
+            if (data.total === 0) {
+                resultsSubtitle.textContent = 'No se encontraron servicios que coincidan';
+            } else if (data.hasFilters) {
+                resultsSubtitle.textContent = 'Resultados que coinciden con tu búsqueda';
+            } else if (this.userLocation) {
+                resultsSubtitle.textContent = 'Servicios populares en tu área';
+            } else {
+                resultsSubtitle.textContent = 'Servicios recomendados para ti';
+            }
+        }
+    }
+
+    /**
+     * 🔥 NUEVO: Animación suave para nuevo contenido
+     */
+    animateNewContent() {
+        const serviceCards = document.querySelectorAll('.service-item');
+        serviceCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease-out';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    }
+
+    /**
+     * 🔥 NUEVO: Loading inteligente
+     */
+    showSmartLoading() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const loadingText = document.getElementById('loading-text');
+        
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
+            
+            // Mensajes de loading contextuales
+            const messages = [
+                'Buscando los mejores servicios...',
+                'Consultando prestadores cercanos...',
+                'Cargando servicios recomendados...',
+                'Actualizando resultados...'
+            ];
+            
+            if (loadingText) {
+                const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                loadingText.textContent = randomMessage;
+            }
+        }
+    }
+
     handleScroll() {
         if (this.isLoading || !this.hasMore) return;
         
@@ -867,7 +1124,8 @@ class InfiniteScrollManager {
         const windowHeight = window.innerHeight;
         const documentHeight = document.documentElement.scrollHeight;
         
-        if (documentHeight - (scrollTop + windowHeight) < 500) {
+        // 🔥 MEJORADO: Cargar antes de llegar al final para mejor experiencia
+        if (documentHeight - (scrollTop + windowHeight) < 1000) {
             this.loadServices();
         }
     }
@@ -1076,16 +1334,18 @@ class InfiniteScrollManager {
         }
     }
 
-    updateResultsCount(total) {
+    updateResultsCount(total, hasFilters) {
         const countElement = document.getElementById('results-count');
+        const subtitleElement = document.getElementById('results-subtitle');
+        
         if (countElement) {
             if (total === 0) {
                 countElement.textContent = '0 servicios encontrados';
+                if (subtitleElement) subtitleElement.textContent = 'Intenta ajustar tus filtros de búsqueda';
+                this.showEmptyState();
             } else {
                 countElement.textContent = `${total} servicio(s) encontrado(s)`;
-                if (Object.keys(this.currentFilters).length > 0) {
-                    countElement.innerHTML += ' <span class="text-muted fs-6">para tu búsqueda</span>';
-                }
+                this.hideEmptyState();
             }
         }
     }
@@ -1176,16 +1436,85 @@ class InfiniteScrollManager {
         
         toast.addEventListener('hidden.bs.toast', () => toast.remove());
     }
+
+    updateFiltersFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.currentFilters = {};
+        
+        for (const [key, value] of urlParams) {
+            if (value) this.currentFilters[key] = value;
+        }
+        
+        this.fillFormFromFilters();
+    }
+
+    fillFormFromFilters() {
+        // Llenar todos los formularios con los filtros actuales
+        const forms = ['search-form', 'filter-form', 'filter-form-mobile'];
+        forms.forEach(formId => {
+            const form = document.getElementById(formId);
+            if (form) {
+                Object.keys(this.currentFilters).forEach(key => {
+                    const element = form.querySelector(`[name="${key}"]`);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            element.checked = this.currentFilters[key] === '1';
+                        } else {
+                            element.value = this.currentFilters[key];
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    initializeCategorySelects() {
+        // Configurar selects de categoría para ambos formularios
+        this.setupCategorySelect('categoria-select', 'subcategoria-container', 'subcategoria-select');
+        this.setupCategorySelect('categoria-select-mobile', 'subcategoria-container-mobile', 'subcategoria-select-mobile');
+    }
+
+    setupCategorySelect(selectId, containerId, subcatSelectId) {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.addEventListener('change', function() {
+                const categoriaId = this.value;
+                const container = document.getElementById(containerId);
+                const subcatSelect = document.getElementById(subcatSelectId);
+                
+                if (categoriaId) {
+                    fetch(`/cliente/servicios/subcategorias/${categoriaId}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Error al cargar subcategorías');
+                            return response.json();
+                        })
+                        .then(data => {
+                            subcatSelect.innerHTML = '<option value="">Todas las subcategorías</option>';
+                            data.forEach(subcategoria => {
+                                subcatSelect.innerHTML += `<option value="${subcategoria.id}">${subcategoria.nombre}</option>`;
+                            });
+                            container.style.display = 'block';
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            container.style.display = 'none';
+                        });
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+        }
+    }
 }
 
 // Inicializar cuando el DOM esté listo
 function initializeApp() {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            new InfiniteScrollManager();
+            new IntelligentScrollManager();
         });
     } else {
-        new InfiniteScrollManager();
+        new IntelligentScrollManager();
     }
 }
 
@@ -1193,7 +1522,6 @@ function initializeApp() {
 if (window.jQuery && typeof bootstrap !== 'undefined') {
     initializeApp();
 } else {
-    // Reintentar después de un breve delay
     setTimeout(initializeApp, 100);
 }
 </script>

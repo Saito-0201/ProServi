@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\ClienteInfo;
+use App\Models\PrestadorInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -15,7 +17,7 @@ class UsuarioController extends Controller
      */
     public function index()
     {           
-        $usuarios = User::with('roles')->get();
+        $usuarios = User::with('roles', 'clienteInfo', 'prestadorInfo')->get();
         return view('admin.usuarios.index', compact('usuarios'));
     }
 
@@ -61,7 +63,7 @@ class UsuarioController extends Controller
      */
     public function show($id)
     {
-        $usuario = User::findOrFail($id);
+        $usuario = User::with('roles', 'clienteInfo', 'prestadorInfo', 'verificacion')->findOrFail($id);
         return view('admin.usuarios.show', compact('usuario'));
     }
 
@@ -70,7 +72,7 @@ class UsuarioController extends Controller
      */
     public function edit($id)
     {
-        $usuario = User::findOrFail($id);
+        $usuario = User::with('roles', 'clienteInfo', 'prestadorInfo', 'verificacion')->findOrFail($id);
         $roles = Role::all();
         return view('admin.usuarios.edit', compact('usuario', 'roles'));
     }
@@ -88,6 +90,16 @@ class UsuarioController extends Controller
             'email' => 'required|unique:users,email,'.$usuario->id,
             'role' => 'required|exists:roles,name',
             'password' => 'nullable|string|min:8|confirmed',
+            // Campos para cliente
+            'telefono_cliente' => 'nullable|string|max:20',
+            'genero_cliente' => 'nullable|in:masculino,femenino,otro',
+            // Campos para prestador
+            'telefono_prestador' => 'nullable|string|max:20',
+            'genero_prestador' => 'nullable|in:masculino,femenino,otro',
+            'descripcion' => 'nullable|string|max:500',
+            'experiencia' => 'nullable|string|max:1000',
+            'especialidades' => 'nullable|string|max:255',
+            'disponibilidad' => 'nullable|string|max:255',
         ]);
 
         $data = [
@@ -106,16 +118,62 @@ class UsuarioController extends Controller
         // Sincronizar roles (eliminar todos y asignar el nuevo)
         $usuario->syncRoles([$request->role]);
 
+        // Actualizar información específica según el rol
+        if ($usuario->hasRole('Cliente')) {
+            $this->actualizarInfoCliente($usuario, $request);
+        } elseif ($usuario->hasRole('Prestador')) {
+            $this->actualizarInfoPrestador($usuario, $request);
+        }
+
         return redirect()->route('admin.usuarios.index')
             ->with('mensaje', 'Usuario actualizado correctamente')
             ->with('icono', 'success');
     }
 
+    /**
+     * Actualizar información del cliente
+     */
+    private function actualizarInfoCliente(User $usuario, Request $request)
+    {
+        $clienteData = [
+            'telefono' => $request->telefono_cliente,
+            'genero' => $request->genero_cliente,
+        ];
+
+        if ($usuario->clienteInfo) {
+            $usuario->clienteInfo->update($clienteData);
+        } else {
+            $clienteData['usuario_id'] = $usuario->id;
+            ClienteInfo::create($clienteData);
+        }
+    }
+
+    /**
+     * Actualizar información del prestador
+     */
+    private function actualizarInfoPrestador(User $usuario, Request $request)
+    {
+        $prestadorData = [
+            'telefono' => $request->telefono_prestador,
+            'genero' => $request->genero_prestador,
+            'descripcion' => $request->descripcion,
+            'experiencia' => $request->experiencia,
+            'especialidades' => $request->especialidades,
+            'disponibilidad' => $request->disponibilidad,
+        ];
+
+        if ($usuario->prestadorInfo) {
+            $usuario->prestadorInfo->update($prestadorData);
+        } else {
+            $prestadorData['usuario_id'] = $usuario->id;
+            PrestadorInfo::create($prestadorData);
+        }
+    }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy( $id)
+    public function destroy($id)
     {
         $usuario = User::find($id);
         $usuario->delete();

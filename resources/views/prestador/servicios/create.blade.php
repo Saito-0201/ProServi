@@ -4,6 +4,18 @@
 @section('page_title','Crear servicio')
 
 @section('prestador-content')
+
+{{-- Verificación de WhatsApp --}}
+@if($prestadorInfo && $prestadorInfo->telefono)
+<div class="alert alert-success d-flex align-items-center mb-4">
+    <i class="bi bi-whatsapp me-3 fs-4"></i>
+    <div>
+        <h6 class="mb-1">WhatsApp configurado</h6>
+        <p class="mb-0">Los clientes podrán contactarte al: <strong>{{ $prestadorInfo->telefono }}</strong></p>
+    </div>
+</div>
+@endif
+
 <form class="card ui-card" method="POST" action="{{ route('prestador.servicios.store') }}" enctype="multipart/form-data" id="servicioForm">
   @csrf
   <div class="card-body">
@@ -127,6 +139,8 @@
     <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Guardar</button>
   </div>
 </form>
+
+
 @endsection
 
 @push('styles')
@@ -147,6 +161,7 @@
 @endpush
 
 @push('scripts')
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   {{-- Subcategorías por categoría --}}
   <script>
       const categoriaSel = document.getElementById('categoria_id');
@@ -218,7 +233,15 @@
 
             if (['fijo', 'diario', 'por_servicio'].includes(tipoPrecio) && (!precio || precio <= 0)) {
                 e.preventDefault();
-                alert('Por favor ingrese un precio válido para el tipo de precio seleccionado.');
+                
+                // Por esto:
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Precio requerido',
+                    text: 'Por favor ingrese un precio válido para el tipo de precio seleccionado.',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'Aceptar'
+                });
                 precioInput.focus();
             }
         });
@@ -532,5 +555,38 @@
         document.getElementById('longitud').placeholder = 'Ingrese longitud manualmente';
     });
   </script>
+  <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        // Verificar si tiene WhatsApp antes de enviar el formulario
+        document.getElementById('servicioForm').addEventListener('submit', function(e) {
+            const tieneWhatsApp = {{ $prestadorInfo && $prestadorInfo->telefono ? 'true' : 'false' }};
+            
+            if (!tieneWhatsApp) {
+                e.preventDefault();
+                // Reemplazar el modal de Bootstrap por SweetAlert2:
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'WhatsApp Requerido',
+                    html: `
+                        <div class="text-center">
+                            <i class="bi bi-whatsapp text-success mb-3" style="font-size: 3rem;"></i>
+                            <h5>Número de WhatsApp Requerido</h5>
+                            <p class="text-muted">Para publicar servicios necesitas agregar tu número de WhatsApp.</p>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="bi bi-whatsapp me-2"></i> Agregar WhatsApp',
+                    confirmButtonColor: '#25D366',
+                    cancelButtonText: 'Cancelar',
+                    cancelButtonColor: '#6c757d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '{{ route("prestador.perfil.edit") }}';
+                    }
+                });
+            }
+        });
+    });
+    </script>
   @endif
 @endpush

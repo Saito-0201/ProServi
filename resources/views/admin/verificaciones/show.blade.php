@@ -48,6 +48,17 @@
                                     </span>
                                 </p>
                             </div>
+                            
+                            <!-- Mostrar motivo de rechazo solo si está rechazado y tiene motivo -->
+                            @if($verificacion->estado == 'rechazado' && $verificacion->motivo_rechazo)
+                            <div class="form-group">
+                                <label><strong>Motivo de Rechazo:</strong></label>
+                                <div class="alert alert-danger" style="margin-bottom: 0;">
+                                    <p class="mb-0"><i class="fas fa-exclamation-triangle"></i> {{ $verificacion->motivo_rechazo }}</p>
+                                </div>
+                            </div>
+                            @endif
+                            
                             @if($verificacion->fecha_verificacion)
                             <div class="form-group">
                                 <label><strong>Fecha de Verificación:</strong></label>
@@ -67,9 +78,9 @@
                                     <div class="form-group">
                                         <label><strong>Carnet (Frente):</strong></label><br>
                                         @if($verificacion->ruta_imagen_carnet)
-                                            <a href="{{ asset('storage/' . $verificacion->ruta_imagen_carnet) }}" target="_blank" class="btn btn-info btn-sm">
+                                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#modalCarnetFrente">
                                                 <i class="fas fa-eye"></i> Ver Imagen
-                                            </a>
+                                            </button>
                                         @else
                                             <span class="text-muted">No disponible</span>
                                         @endif
@@ -79,9 +90,9 @@
                                     <div class="form-group">
                                         <label><strong>Carnet (Reverso):</strong></label><br>
                                         @if($verificacion->ruta_reverso_carnet)
-                                            <a href="{{ asset('storage/' . $verificacion->ruta_reverso_carnet) }}" target="_blank" class="btn btn-info btn-sm">
+                                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#modalCarnetReverso">
                                                 <i class="fas fa-eye"></i> Ver Imagen
-                                            </a>
+                                            </button>
                                         @else
                                             <span class="text-muted">No disponible</span>
                                         @endif
@@ -91,9 +102,9 @@
                                     <div class="form-group">
                                         <label><strong>Foto de Rostro:</strong></label><br>
                                         @if($verificacion->ruta_foto_cara)
-                                            <a href="{{ asset('storage/' . $verificacion->ruta_foto_cara) }}" target="_blank" class="btn btn-info btn-sm">
+                                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#modalFotoRostro">
                                                 <i class="fas fa-eye"></i> Ver Imagen
-                                            </a>
+                                            </button>
                                         @else
                                             <span class="text-muted">No disponible</span>
                                         @endif
@@ -113,27 +124,178 @@
                             <a href="{{ route('admin.verificaciones.edit', $verificacion->id) }}" class="btn btn-primary">
                                 <i class="fas fa-edit"></i> Editar Verificación
                             </a>
-                            
-                            @if($verificacion->estado == 'pendiente')
-                                <form action="{{ route('admin.verificaciones.aprobar', $verificacion->id) }}" method="POST" style="display: inline;">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="btn btn-success">
-                                        <i class="fas fa-check"></i> Aprobar
-                                    </button>
-                                </form>
-                                <form action="{{ route('admin.verificaciones.rechazar', $verificacion->id) }}" method="POST" style="display: inline;">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="btn btn-danger">
-                                        <i class="fas fa-times"></i> Rechazar
-                                    </button>
-                                </form>
-                            @endif
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Modales para las imágenes - TODOS CON Storage::url() -->
+    @if($verificacion->ruta_imagen_carnet)
+    <div class="modal fade" id="modalCarnetFrente" tabindex="-1" role="dialog" aria-labelledby="modalCarnetFrenteLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalCarnetFrenteLabel">Carnet - Frente</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="{{ Storage::url($verificacion->ruta_imagen_carnet) }}" 
+                         alt="Carnet Frente" 
+                         class="img-fluid rounded"
+                         style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <a href="{{ Storage::url($verificacion->ruta_imagen_carnet) }}" 
+                       target="_blank" 
+                       class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if($verificacion->ruta_reverso_carnet)
+    <div class="modal fade" id="modalCarnetReverso" tabindex="-1" role="dialog" aria-labelledby="modalCarnetReversoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalCarnetReversoLabel">Carnet - Reverso</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="{{ Storage::url($verificacion->ruta_reverso_carnet) }}" 
+                         alt="Carnet Reverso" 
+                         class="img-fluid rounded"
+                         style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <a href="{{ Storage::url($verificacion->ruta_reverso_carnet) }}" 
+                       target="_blank" 
+                       class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if($verificacion->ruta_foto_cara)
+    <div class="modal fade" id="modalFotoRostro" tabindex="-1" role="dialog" aria-labelledby="modalFotoRostroLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalFotoRostroLabel">Foto de Rostro</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="{{ Storage::url($verificacion->ruta_foto_cara) }}" 
+                         alt="Foto de Rostro" 
+                         class="img-fluid rounded"
+                         style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <a href="{{ Storage::url($verificacion->ruta_foto_cara) }}" 
+                       target="_blank" 
+                       class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal para rechazar -->
+    @if($verificacion->estado == 'pendiente')
+    <div class="modal fade" id="rechazarModal" tabindex="-1" role="dialog" aria-labelledby="rechazarModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rechazarModalLabel">Rechazar Verificación</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="{{ route('admin.verificaciones.rechazar', $verificacion->id) }}" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Advertencia:</strong> Esta acción no se puede deshacer. Por favor, ingrese el motivo del rechazo.
+                        </div>
+                        <div class="form-group">
+                            <label for="motivo_rechazo"><strong>Motivo de Rechazo</strong></label><b> (*)</b>
+                            <textarea class="form-control" name="motivo_rechazo" rows="4" 
+                                      placeholder="Ingrese el motivo del rechazo (mínimo 10 caracteres)..." 
+                                      required minlength="10"></textarea>
+                            <small class="form-text text-muted">Mínimo 10 caracteres</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Rechazar Verificación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+@stop
+
+@section('css')
+    <style>
+        .badge {
+            font-size: 0.85em;
+            margin: 2px;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+    </style>
+@stop
+
+@section('js')
+    <script>
+        // Validación del modal de rechazo
+        $(document).ready(function() {
+            $('#rechazarModal').on('show.bs.modal', function (event) {
+                // Limpiar el textarea cada vez que se abre el modal
+                $('textarea[name="motivo_rechazo"]').val('');
+            });
+
+            // Validación del formulario de rechazo
+            $('form[action*="rechazar"]').on('submit', function(e) {
+                const motivo = $('textarea[name="motivo_rechazo"]').val().trim();
+                if (!motivo || motivo.length < 10) {
+                    e.preventDefault();
+                    alert('Por favor, ingrese un motivo de rechazo válido (mínimo 10 caracteres).');
+                    return false;
+                }
+            });
+        });
+    </script>
 @stop

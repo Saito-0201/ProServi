@@ -44,19 +44,40 @@ class VerificacionController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'numero_carnet' => 'required|string|max:20',
-            'fecha_emision' => 'required|date',
-            'estado' => 'required|in:pendiente,aprobado,rechazado'
-        ]);
+        // Validación condicional basada en el estado
+        $reglasValidacion = [
+            'estado' => 'required|in:pendiente,aprobado,rechazado',
+            'motivo_rechazo' => 'nullable|string|max:500'
+        ];
+
+        // Solo requerir número de carnet y fecha de emisión si no está rechazado
+        if ($request->estado !== 'rechazado') {
+            $reglasValidacion['numero_carnet'] = 'required|string|max:20';
+            $reglasValidacion['fecha_emision'] = 'required|date';
+        } else {
+            $reglasValidacion['motivo_rechazo'] = 'required|string|max:500';
+        }
+
+        $request->validate($reglasValidacion);
 
         $verificacion = Verificacion::findOrFail($id);
         
-        $data = $request->only(['numero_carnet', 'fecha_emision', 'estado']);
+        $data = $request->only(['estado', 'motivo_rechazo']);
+        
+        // Solo incluir número de carnet y fecha de emisión si no está rechazado
+        if ($request->estado !== 'rechazado') {
+            $data['numero_carnet'] = $request->numero_carnet;
+            $data['fecha_emision'] = $request->fecha_emision;
+        }
         
         // Si se aprueba o rechaza, registrar la fecha de verificación
         if ($request->estado !== 'pendiente') {
             $data['fecha_verificacion'] = now();
+            
+            // Limpiar motivo de rechazo si se aprueba
+            if ($request->estado === 'aprobado') {
+                $data['motivo_rechazo'] = null;
+            }
         }
 
         $verificacion->update($data);
@@ -82,7 +103,8 @@ class VerificacionController extends Controller
         
         $verificacion->update([
             'estado' => 'aprobado',
-            'fecha_verificacion' => now()
+            'fecha_verificacion' => now(),
+            'motivo_rechazo' => null
         ]);
 
         // Actualizar el estado de verificación del prestador
@@ -100,13 +122,18 @@ class VerificacionController extends Controller
     /**
      * Rechazar una verificación
      */
-    public function rechazar($id)
+    public function rechazar(Request $request, $id) // Recibe Request y ID
     {
-        $verificacion = Verificacion::findOrFail($id);
+        $request->validate([
+            'motivo_rechazo' => 'required|string|min:10|max:500' // Agregado mínimo de 10 caracteres
+        ]);
+
+        $verificacion = Verificacion::findOrFail($id); // Buscar la verificación por ID
         
         $verificacion->update([
             'estado' => 'rechazado',
-            'fecha_verificacion' => now()
+            'fecha_verificacion' => now(),
+            'motivo_rechazo' => $request->motivo_rechazo
         ]);
 
         // Actualizar el estado de verificación del prestador

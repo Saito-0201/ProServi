@@ -53,7 +53,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Rol de Usuario (Reemplazando user_type) -->
+                            <!-- Rol de Usuario -->
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="role">Rol de Usuario</label><b> (*)</b>
@@ -61,7 +61,7 @@
                                         <div class="input-group-prepend">
                                             <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
                                         </div>
-                                        <select name="role" class="form-control" required>
+                                        <select name="role" class="form-control" required id="roleSelect">
                                             <option value="">Seleccione un rol...</option>
                                             @foreach($roles as $role)
                                                 @php
@@ -99,6 +99,130 @@
                                 </div>
                             </div>
                             
+                        </div>
+
+                        <!-- Información específica para Cliente -->
+                        <div id="clienteInfo" style="display: none;">
+                            <div class="row mt-4">
+                                <div class="col-md-12">
+                                    <h4 class="text-info"><i class="fas fa-user-circle"></i> Información del Cliente</h4>
+                                    <hr>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="telefono_cliente">Teléfono</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                            </div>
+                                            <input type="text" class="form-control" name="telefono_cliente" 
+                                                   value="{{ old('telefono_cliente', $usuario->clienteInfo->telefono ?? '') }}" 
+                                                   placeholder="Teléfono del cliente...">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="genero_cliente">Género</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-venus-mars"></i></span>
+                                            </div>
+                                            <select name="genero_cliente" class="form-control">
+                                                <option value="">Seleccione género...</option>
+                                                <option value="masculino" {{ old('genero_cliente', $usuario->clienteInfo->genero ?? '') == 'masculino' ? 'selected' : '' }}>Masculino</option>
+                                                <option value="femenino" {{ old('genero_cliente', $usuario->clienteInfo->genero ?? '') == 'femenino' ? 'selected' : '' }}>Femenino</option>
+                                                <option value="otro" {{ old('genero_cliente', $usuario->clienteInfo->genero ?? '') == 'otro' ? 'selected' : '' }}>Otro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información específica para Prestador -->
+                        <div id="prestadorInfo" style="display: none;">
+                            <div class="row mt-4">
+                                <div class="col-md-12">
+                                    <h4 class="text-info"><i class="fas fa-briefcase"></i> Información del Prestador</h4>
+                                    <hr>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="telefono_prestador">Teléfono</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                            </div>
+                                            <input type="text" class="form-control" name="telefono_prestador" 
+                                                   value="{{ old('telefono_prestador', $usuario->prestadorInfo->telefono ?? '') }}" 
+                                                   placeholder="Teléfono del prestador...">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="genero_prestador">Género</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-venus-mars"></i></span>
+                                            </div>
+                                            <select name="genero_prestador" class="form-control">
+                                                <option value="">Seleccione género...</option>
+                                                <option value="masculino" {{ old('genero_prestador', $usuario->prestadorInfo->genero ?? '') == 'masculino' ? 'selected' : '' }}>Masculino</option>
+                                                <option value="femenino" {{ old('genero_prestador', $usuario->prestadorInfo->genero ?? '') == 'femenino' ? 'selected' : '' }}>Femenino</option>
+                                                <option value="otro" {{ old('genero_prestador', $usuario->prestadorInfo->genero ?? '') == 'otro' ? 'selected' : '' }}>Otro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="disponibilidad">Disponibilidad</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                                            </div>
+                                            <input type="text" class="form-control" name="disponibilidad" 
+                                                   value="{{ old('disponibilidad', $usuario->prestadorInfo->disponibilidad ?? '') }}" 
+                                                   placeholder="Ej: Lunes a Viernes 8:00-18:00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="descripcion">Descripción</label>
+                                        <textarea class="form-control" name="descripcion" rows="3" 
+                                                  placeholder="Descripción del prestador...">{{ old('descripcion', $usuario->prestadorInfo->descripcion ?? '') }}</textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="experiencia">Experiencia</label>
+                                        <textarea class="form-control" name="experiencia" rows="3" 
+                                                  placeholder="Experiencia del prestador...">{{ old('experiencia', $usuario->prestadorInfo->experiencia ?? '') }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label for="especialidades">Especialidades</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-star"></i></span>
+                                            </div>
+                                            <input type="text" class="form-control" name="especialidades" 
+                                                   value="{{ old('especialidades', $usuario->prestadorInfo->especialidades ?? '') }}" 
+                                                   placeholder="Ej: Plomería, Electricidad, Carpintería...">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="row">
@@ -164,6 +288,34 @@
 
 @section('js')
     <script>
+        // Mostrar/ocultar información específica según el rol seleccionado
+        function toggleRoleInfo() {
+            const roleSelect = document.getElementById('roleSelect');
+            const clienteInfo = document.getElementById('clienteInfo');
+            const prestadorInfo = document.getElementById('prestadorInfo');
+            
+            const selectedRole = roleSelect.value;
+            
+            // Ocultar todo primero
+            clienteInfo.style.display = 'none';
+            prestadorInfo.style.display = 'none';
+            
+            // Mostrar según el rol seleccionado
+            if (selectedRole === 'Cliente') {
+                clienteInfo.style.display = 'block';
+            } else if (selectedRole === 'Prestador') {
+                prestadorInfo.style.display = 'block';
+            }
+        }
+
+        // Ejecutar al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleRoleInfo();
+            
+            // Ejecutar cuando cambie el select de rol
+            document.getElementById('roleSelect').addEventListener('change', toggleRoleInfo);
+        });
+
         // Validación básica de contraseñas coincidentes
         document.querySelector('form').addEventListener('submit', function(e) {
             const password = document.querySelector('input[name="password"]').value;

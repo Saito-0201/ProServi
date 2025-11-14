@@ -13,66 +13,131 @@ class VerificacionController extends Controller
     public function create()
     {
         $user = Auth::user();
-        $verificacionExistente = Verificacion::where('usuario_id', $user->id)->first();
         
-        // Si ya tiene una solicitud, redirigir al estado
+        // Verificar si ya tiene una verificación pendiente o aprobada
+        $verificacionExistente = Verificacion::where('usuario_id', $user->id)
+            ->whereIn('estado', ['pendiente', 'aprobado'])
+            ->first();
+            
         if ($verificacionExistente) {
-            return redirect()->route('prestador.verificacion.estado');
+            return redirect()->route('prestador.verificacion.estado')
+                ->with('error', 'Ya tienes una solicitud de verificación ' . $verificacionExistente->estado);
         }
-
-        return view('prestador.verificacion.create', compact('user'));
+        
+        // Pasar variable para saber si viene de un rechazo
+        $fromRechazo = Verificacion::where('usuario_id', $user->id)
+            ->where('estado', 'rechazado')
+            ->exists();
+        
+        return view('prestador.verificacion.create', compact('fromRechazo'));
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
-        
-        // Verificar si ya existe una solicitud
-        $verificacionExistente = Verificacion::where('usuario_id', $user->id)->first();
+
+        // Verificar si ya existe una verificación pendiente o aprobada
+        $verificacionExistente = Verificacion::where('usuario_id', $user->id)
+            ->whereIn('estado', ['pendiente', 'aprobado'])
+            ->first();
+            
         if ($verificacionExistente) {
             return redirect()->route('prestador.verificacion.estado')
-                ->with('info', 'Ya tienes una solicitud de verificación en proceso.');
+                ->with('error', 'Ya tienes una solicitud de verificación ' . $verificacionExistente->estado);
         }
 
         $request->validate([
-            'foto_cara' => 'required|image|mimes:jpeg,png,jpg|max:5120',
-            'carnet_frente' => 'required|image|mimes:jpeg,png,jpg|max:5120',
-            'carnet_reverso' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'foto_cara' => 'required|image|max:5120',
+            'carnet_frente' => 'required|image|max:5120',
+            'carnet_reverso' => 'required|image|max:5120',
         ]);
 
-        // Guardar archivos
-        $fotoCaraPath = $request->file('foto_cara')->store('verificaciones/fotos', 'public');
-        $carnetFrentePath = $request->file('carnet_frente')->store('verificaciones/carnets', 'public');
-        $carnetReversoPath = $request->file('carnet_reverso')->store('verificaciones/carnets', 'public');
+        try {
+            // Buscar si existe una verificación rechazada anterior
+            $verificacionAnterior = Verificacion::where('usuario_id', $user->id)
+                ->where('estado', 'rechazado')
+                ->first();
 
-        // Crear solicitud de verificación
-        Verificacion::create([
-            'usuario_id' => $user->id,
-            'ruta_foto_cara' => $fotoCaraPath,
-            'ruta_imagen_carnet' => $carnetFrentePath,
-            'ruta_reverso_carnet' => $carnetReversoPath,
-            'estado' => 'pendiente',
-        ]);
+            // Si existe una verificación rechazada, actualizarla
+            if ($verificacionAnterior) {
+                // Eliminar archivos antiguos si existen
+                if ($verificacionAnterior->ruta_foto_cara) {
+                    Storage::disk('public')->delete($verificacionAnterior->ruta_foto_cara);
+                }
+                if ($verificacionAnterior->ruta_imagen_carnet) {
+                    Storage::disk('public')->delete($verificacionAnterior->ruta_imagen_carnet);
+                }
+                if ($verificacionAnterior->ruta_reverso_carnet) {
+                    Storage::disk('public')->delete($verificacionAnterior->ruta_reverso_carnet);
+                }
 
-        return redirect()->route('prestador.verificacion.estado')
-            ->with('success', 'Solicitud de verificación enviada correctamente. Revisaremos tu información pronto.');
+                // Subir nuevos archivos CON DISCO 'public'
+                $rutaFotoCara = $request->file('foto_cara')->store('verificaciones/fotos', 'public');
+                $rutaCarnetFrente = $request->file('carnet_frente')->store('verificaciones/carnets', 'public');
+                $rutaCarnetReverso = $request->file('carnet_reverso')->store('verificaciones/carnets', 'public');
+
+                // Actualizar la verificación existente
+                $verificacionAnterior->update([
+                    'ruta_foto_cara' => $rutaFotoCara,
+                    'ruta_imagen_carnet' => $rutaCarnetFrente,
+                    'ruta_reverso_carnet' => $rutaCarnetReverso,
+                    'estado' => 'pendiente',
+                    'motivo_rechazo' => null, // Limpiar el motivo de rechazo
+                    'fecha_verificacion' => null, // Limpiar fecha de verificación
+                    'created_at' => now(), // Actualizar fecha de creación
+                ]);
+
+                $verificacion = $verificacionAnterior;
+            } else {
+                // Crear nueva verificación si no existe una anterior CON DISCO 'public'
+                $rutaFotoCara = $request->file('foto_cara')->store('verificaciones/fotos', 'public');
+                $rutaCarnetFrente = $request->file('carnet_frente')->store('verificaciones/carnets', 'public');
+                $rutaCarnetReverso = $request->file('carnet_reverso')->store('verificaciones/carnets', 'public');
+
+                $verificacion = Verificacion::create([
+                    'usuario_id' => $user->id,
+                    'ruta_foto_cara' => $rutaFotoCara,
+                    'ruta_imagen_carnet' => $rutaCarnetFrente,
+                    'ruta_reverso_carnet' => $rutaCarnetReverso,
+                    'estado' => 'pendiente',
+                    'numero_carnet' => null, // Se llenará cuando el admin apruebe
+                    'fecha_emision' => null, // Se llenará cuando el admin apruebe
+                ]);
+            }
+
+            return redirect()->route('prestador.verificacion.estado')
+                ->with('success', 'Solicitud de verificación enviada correctamente. Estará en revisión.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error al subir los archivos: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function estado()
     {
         $user = Auth::user();
-        $verificacion = Verificacion::where('usuario_id', $user->id)->first();
-
+        $verificacion = Verificacion::where('usuario_id', $user->id)->latest()->first();
+        
         return view('prestador.verificacion.estado', compact('verificacion'));
     }
 
     public function destroy()
     {
         $user = Auth::user();
-        $verificacion = Verificacion::where('usuario_id', $user->id)->first();
+        
+        $verificacion = Verificacion::where('usuario_id', $user->id)
+            ->where('estado', 'pendiente')
+            ->first();
 
-        if ($verificacion && $verificacion->estado === 'pendiente') {
-            // Eliminar archivos
+        if (!$verificacion) {
+            return redirect()->route('prestador.verificacion.estado')
+                ->with('error', 'No tienes una solicitud pendiente para cancelar.');
+        }
+
+        try {
+            // Eliminar archivos del storage CON DISCO 'public'
             if ($verificacion->ruta_foto_cara) {
                 Storage::disk('public')->delete($verificacion->ruta_foto_cara);
             }
@@ -83,12 +148,15 @@ class VerificacionController extends Controller
                 Storage::disk('public')->delete($verificacion->ruta_reverso_carnet);
             }
 
+            // Eliminar el registro
             $verificacion->delete();
 
-            return redirect()->route('prestador.perfil.show')
+            return redirect()->route('prestador.verificacion.estado')
                 ->with('success', 'Solicitud de verificación cancelada correctamente.');
-        }
 
-        return redirect()->back()->with('error', 'No se puede cancelar la solicitud.');
+        } catch (\Exception $e) {
+            return redirect()->route('prestador.verificacion.estado')
+                ->with('error', 'Error al cancelar la solicitud: ' . $e->getMessage());
+        }
     }
 }

@@ -32,7 +32,7 @@ class ServicioController extends Controller
         $estados = ['activo' => 'Activo', 'inactivo' => 'Inactivo'];
         $categorias = Categoria::activas()->get();
         $subcategorias = Subcategoria::whereIn('categoria_id', $categorias->pluck('id'))->get();
-        $prestadores = User::role('prestador')->get();
+        $prestadores = User::role('Prestador')->get();
         
         $tiposPrecio = [
             'fijo' => 'Precio Fijo',
@@ -105,7 +105,7 @@ class ServicioController extends Controller
         $servicio = Servicio::with(['categoria', 'subcategoria'])->findOrFail($id);
         $categorias = Categoria::activas()->get();
         $subcategorias = Subcategoria::where('categoria_id', $servicio->categoria_id)->get();
-        $prestadores = User::role('prestador')->get();
+        $prestadores = User::role('Prestador')->get();
         
         $tiposPrecio = [
             'fijo' => 'Precio Fijo',

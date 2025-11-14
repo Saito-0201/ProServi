@@ -11,7 +11,7 @@
                 <h4 class="mb-0"><i class="fas fa-user-edit me-2"></i>Editar Perfil</h4>
             </div>
             <div class="card-body">
-                <form action="{{ route('prestador.perfil.update') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('prestador.perfil.update') }}" method="POST" id="profile-form">
                     @csrf
                     @method('PUT')
                     
@@ -32,7 +32,7 @@
                             
                             @if($info->foto_perfil)
                             <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.preventDefault(); document.getElementById('remove-foto-form').submit();">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeProfilePhoto()">
                                     <i class="fas fa-trash me-1"></i> Eliminar foto
                                 </button>
                             </div>
@@ -67,17 +67,18 @@
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email *</label>
                                 <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                                       id="email" name="email" value="{{ old('email', $user->email) }}" required>
+                                       id="email" name="email" value="{{ old('email', $user->email) }}" required readonly>
                                 @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                                <small class="text-muted">El email no se puede modificar por seguridad</small>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="telefono" class="form-label">Teléfono/Celular</label>
+                                <label for="telefono" class="form-label">Celular/WhatsApp</label>
                                 <input type="tel" class="form-control @error('telefono') is-invalid @enderror" 
                                        id="telefono" name="telefono" value="{{ old('telefono', $info->telefono) }}"
-                                       placeholder="Ej: +591 12345678">
+                                       placeholder="Ej: 76981578">
                                 @error('telefono')
                                 <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -183,18 +184,11 @@
                         <a href="{{ route('prestador.perfil.show') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-left me-2"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
                             <i class="fas fa-save me-2"></i> Guardar Cambios
                         </button>
                     </div>
                 </form>
-                
-                @if($info->foto_perfil)
-                <form id="remove-foto-form" action="{{ route('prestador.perfil.remove-foto') }}" method="POST" class="d-none">
-                    @csrf
-                    @method('DELETE')
-                </form>
-                @endif
             </div>
         </div>
     </div>
@@ -244,14 +238,27 @@
 .card-header {
     border-radius: 12px 12px 0 0 !important;
 }
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
 </style>
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+// Subida de foto de perfil separada
 $(document).on('change', '#foto_perfil', function() {
     if (this.files && this.files[0]) {
         const file = this.files[0];
+        
+        // Validar tamaño del archivo (12MB máximo)
+        if (file.size > 12 * 1024 * 1024) {
+            showToast('El archivo es demasiado grande. Máximo 12MB.', 'error');
+            return;
+        }
 
         // Previsualización
         const reader = new FileReader();
@@ -271,26 +278,134 @@ $(document).on('change', '#foto_perfil', function() {
             data: formData,
             processData: false,
             contentType: false,
-            success: function() {
-                Toastify({
-                    text: "Foto actualizada correctamente",
-                    duration: 3000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "var(--ui-primary)",
-                }).showToast();
+            beforeSend: function() {
+                $('#profile-image-preview').addClass('loading');
+            },
+            success: function(response) {
+                showToast('Foto actualizada correctamente', 'success');
             },
             error: function(xhr) {
-                Toastify({
-                    text: "Error al subir la imagen: " + (xhr.responseJSON?.message || 'Error desconocido'),
-                    duration: 3000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#dc3545",
-                }).showToast();
+                let errorMessage = 'Error al subir la imagen';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = xhr.responseJSON.errors.foto_perfil[0];
+                }
+                showToast(errorMessage, 'error');
+            },
+            complete: function() {
+                $('#profile-image-preview').removeClass('loading');
             }
         });
     }
+});
+
+// Envío del formulario principal
+$('#profile-form').on('submit', function(e) {
+    e.preventDefault();
+    
+    const submitBtn = $('#submit-btn');
+    const originalText = submitBtn.html();
+    
+    // Mostrar loading
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Guardando...');
+    
+    // Enviar formulario
+    $.ajax({
+        url: $(this).attr('action'),
+        method: 'POST',
+        data: $(this).serialize(),
+        success: function(response) {
+            showToast('Perfil actualizado correctamente', 'success');
+            // Redirigir después de 1 segundos
+            setTimeout(() => {
+                window.location.href = '{{ route("prestador.perfil.show") }}';
+            }, 1000);
+        },
+        error: function(xhr) {
+            let errorMessage = 'Error al actualizar el perfil';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                // Mostrar el primer error de validación
+                const firstError = Object.values(xhr.responseJSON.errors)[0][0];
+                errorMessage = firstError;
+            }
+            showToast(errorMessage, 'error');
+        },
+        complete: function() {
+            submitBtn.prop('disabled', false).html(originalText);
+        }
+    });
+});
+
+// Eliminar foto de perfil
+function removeProfilePhoto() {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "¿Quieres eliminar tu foto de perfil?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        position: 'center', // El diálogo de confirmación se mantiene centrado
+        backdrop: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '{{ route("prestador.perfil.remove-foto") }}',
+                method: 'DELETE',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    $('#profile-image-preview').attr('src', '{{ asset("uploads/images/default-user.png") }}');
+                    showToast('Foto de perfil eliminada correctamente', 'success');
+                    $('.btn-outline-danger').closest('.mt-2').remove();
+                },
+                error: function(xhr) {
+                    showToast('Error al eliminar la foto de perfil', 'error');
+                }
+            });
+        }
+    });
+}
+
+// Función para mostrar toasts en esquina superior derecha
+function showToast(message, type = 'success') {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+
+    Toast.fire({
+        icon: type,
+        title: message
+    });
+}
+
+// Función para mostrar alertas normales (centradas)
+function showAlert(title, message, type = 'success') {
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: type,
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Aceptar',
+        position: 'center'
+    });
+}
+
+// Prevenir envío doble del formulario
+$(document).on('submit', 'form', function() {
+    $(this).find('button[type="submit"]').prop('disabled', true);
 });
 </script>
 @endpush

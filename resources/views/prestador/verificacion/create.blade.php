@@ -11,6 +11,23 @@
                 <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Verificación de Identidad</h5>
             </div>
             <div class="card-body">
+                <!-- Mostrar mensajes de error -->
+                @if(session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+                
+                <!-- Mostrar mensaje si viene de un rechazo -->
+                @if($fromRechazo)
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Solicitud anterior rechazada</h6>
+                    <p class="mb-0">Tu solicitud anterior fue rechazada. Por favor, revisa los requisitos y envía nuevamente tu documentación.</p>
+                </div>
+                @endif
+
                 <div class="alert alert-info">
                     <h6><i class="fas fa-info-circle me-2"></i>¿Por qué verificarme?</h6>
                     <p class="mb-0">La verificación aumenta la confianza de los clientes en tus servicios. Los prestadores verificados reciben más solicitudes y aparecen mejor posicionados en las búsquedas.</p>
@@ -93,8 +110,8 @@
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-paper-plane me-2"></i>Enviar para verificación
                         </button>
-                        <a href="{{ route('prestador.perfil.show') }}" class="btn btn-secondary">
-                            <i class="fas fa-times me-2"></i>Cancelar
+                        <a href="{{ route('prestador.verificacion.estado') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver al estado
                         </a>
                     </div>
                 </form>
@@ -105,10 +122,13 @@
 
 <style>
 .border-dashed {
-    border: 2px dashed #dee2e6 ;
+    border: 2px dashed #dee2e6;
 }
 .border-dashed:hover {
-    border-color: #3b82f6 ;
+    border-color: #3b82f6;
+}
+.alert {
+    border-radius: 8px;
 }
 </style>
 @endsection

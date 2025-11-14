@@ -63,7 +63,7 @@
     }
     .btn-hamb i{ font-size: 1.1rem }
     
-    /* Dropdown arreglado para responsive */
+    /* Dropdown para responsive */
     .dropdown-menu {
       border: 1px solid var(--ui-border);
       box-shadow: 0 10px 30px rgba(2,6,23,.08);

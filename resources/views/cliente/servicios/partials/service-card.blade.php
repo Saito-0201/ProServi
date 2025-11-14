@@ -122,7 +122,7 @@
     padding: 0.25rem 0.5rem;
 }
 
-/* Estilos CORREGIDOS para el botón de favoritos */
+/* Estilos para el botón de favoritos */
 .btn-favorite {
     position: absolute;
     top: 10px;
@@ -146,7 +146,7 @@
     transform: scale(1.1);
 }
 
-/* ESTILOS CORREGIDOS: Fondo rojo, icono blanco cuando está activo */
+/* ESTILOS Fondo rojo, icono blanco cuando está activo */
 .btn-favorite.active {
     background: #dc3545; /* Fondo rojo */
     color: white; /* Icono blanco */
